@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>加密工具</title>
+<style>
+  :root { --bg: #f6f2ea; --card: #fffdf8; --text: #2b2620; --muted: #857a6c; --line: #e3dbcd; --accent: #7a5c3e; --on-accent: #fffdf8; --err: #b3412f; --ok: #3d7a4a; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1916; --card: #25221e; --text: #ebe4d8; --muted: #a29785; --line: #3a352e; --accent: #d2b089; --on-accent: #1b1916; --err: #e58a76; --ok: #8cc79a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px 16px; background: var(--bg); color: var(--text); font-family: system-ui, "Microsoft JhengHei", sans-serif; line-height: 1.7; }
+  main { max-width: 720px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 32px; }
+  h1 { margin-top: 0; font-size: 1.4rem; }
+  .note { color: var(--muted); font-size: .9rem; }
+  label { display: block; margin: 18px 0 6px; font-weight: 600; }
+  textarea, input[type=password] { width: 100%; padding: 10px 12px; font: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
+  textarea { min-height: 260px; font-family: "Noto Serif TC", serif; }
+  button { margin-top: 20px; padding: 12px 24px; font: inherit; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 8px; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: wait; }
+  #msg { margin-top: 14px; }
+  .err { color: var(--err); } .ok { color: var(--ok); }
+  @media (max-width: 480px) { main { padding: 20px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>產生加密的 data.js</h1>
+  <p class="note">全程在你的瀏覽器內完成，不會上傳任何東西。請在本機直接開啟這個檔案使用。</p>
+
+  <label for="file">讀取信件檔（選填，例如 private/letter.md）</label>
+  <input id="file" type="file" accept=".md,.txt,text/plain">
+
+  <label for="text">信件內容</label>
+  <textarea id="text" placeholder="在這裡寫或貼上內容…"></textarea>
+
+  <label for="pw1">密碼</label>
+  <input id="pw1" type="password" autocomplete="new-password">
+  <label for="pw2">再輸入一次</label>
+  <input id="pw2" type="password" autocomplete="new-password">
+  <p class="note">空白會被忽略。密碼請與 index.html 上的提示相符。</p>
+
+  <button id="btn">加密並下載 data.js</button>
+  <div id="msg"></div>
+</main>
+
+<script src="letter-crypto.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const say = (text, cls) => { $('msg').textContent = text; $('msg').className = cls; };
+
+  $('file').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (f) $('text').value = await f.text();
+  });
+
+  $('btn').addEventListener('click', async () => {
+    const text = $('text').value;
+    const pw = $('pw1').value;
+    if (!text.trim()) return say('內容是空的。', 'err');
+    if (!LetterCrypto.normalize(pw)) return say('請輸入密碼。', 'err');
+    if (LetterCrypto.normalize(pw) !== LetterCrypto.normalize($('pw2').value)) return say('兩次密碼不一致。', 'err');
+
+    $('btn').disabled = true; say('加密中…', '');
+    try {
+      const payload = await LetterCrypto.encrypt(text, pw);
+      // 下載前先用同一組密碼解密一次，確認可還原
+      if (await LetterCrypto.decrypt(payload, pw) !== text) throw new Error('驗證失敗');
+      const js = '// 由 encrypt.html 產生，內容已加密\nwindow.LETTER = ' + JSON.stringify(payload) + ';\n';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([js], { type: 'text/javascript' }));
+      a.download = 'data.js';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      say('完成！已驗證可正確解密。把下載的 data.js 放到專案根目錄，覆蓋舊檔。', 'ok');
+    } catch (err) {
+      say('失敗：' + err.message, 'err');
+    } finally {
+      $('btn').disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

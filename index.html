@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>給家人的信</title>
+<style>
+  :root {
+    --bg: #f6f2ea; --card: #fffdf8; --text: #2b2620; --muted: #857a6c;
+    --line: #e3dbcd; --accent: #7a5c3e; --on-accent: #fffdf8; --err: #b3412f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1916; --card: #25221e; --text: #ebe4d8; --muted: #a29785;
+      --line: #3a352e; --accent: #d2b089; --on-accent: #1b1916; --err: #e58a76;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 32px 16px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--text);
+    font-family: "Noto Serif TC", "Songti TC", "PMingLiU", serif; line-height: 1.9;
+  }
+  .card {
+    width: 100%; max-width: 420px; padding: 44px 32px; text-align: center;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  }
+  h1 { margin: 0 0 6px; font-size: 1.6rem; font-weight: 600; letter-spacing: .15em; }
+  .hint { margin: 0 0 28px; color: var(--muted); font-size: .95rem; }
+  input {
+    width: 100%; padding: 12px 14px; font: inherit; font-size: 1.05rem; text-align: center;
+    background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button {
+    width: 100%; margin-top: 16px; padding: 12px; font: inherit; letter-spacing: .3em;
+    background: var(--accent); color: var(--on-accent); border: 0; border-radius: 8px; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: wait; }
+  .msg { min-height: 1.6em; margin: 12px 0 0; font-size: .9rem; color: var(--err); }
+  #letter {
+    display: none; width: 100%; max-width: 680px; padding: 56px 44px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  }
+  #content { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.05rem; }
+  @media (max-width: 480px) {
+    .card { padding: 36px 20px; }
+    #letter { padding: 36px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<form class="card" id="lock" autocomplete="off">
+  <h1>給家人的信</h1>
+  <!-- 提示文字改這裡 -->
+  <p class="hint">提示：我的農曆生日（4 位數字，例如 0815）<br>＋ 女兒的名字（只有名字，共四字）</p>
+  <input id="pw" type="password" placeholder="請輸入密碼" aria-label="密碼" required autofocus>
+  <button id="btn" type="submit">開啟</button>
+  <p class="msg" id="msg" role="alert"></p>
+</form>
+
+<main id="letter"><div id="content"></div></main>
+
+<script src="letter-crypto.js"></script>
+<script src="data.js" onerror="window.LETTER = null"></script>
+<script>
+  const form = document.getElementById('lock');
+  const btn = document.getElementById('btn');
+  const msg = document.getElementById('msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!window.LETTER) { msg.textContent = '尚未放入加密內容（data.js）。'; return; }
+    btn.disabled = true; btn.textContent = '開啟中…'; msg.textContent = '';
+    try {
+      const text = await LetterCrypto.decrypt(window.LETTER, document.getElementById('pw').value);
+      document.getElementById('content').textContent = text;
+      form.style.display = 'none';
+      document.getElementById('letter').style.display = 'block';
+      document.body.style.alignItems = 'flex-start';
+    } catch {
+      msg.textContent = '密碼不正確，請再試一次。';
+    } finally {
+      btn.disabled = false; btn.textContent = '開啟';
+    }
+  });
+</script>
+</body>
+</html>

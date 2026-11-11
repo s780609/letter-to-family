@@ -1,0 +1,2 @@
+# 信件明文只放這裡，永遠不要 commit
+private/
