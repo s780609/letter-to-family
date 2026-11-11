@@ -6,9 +6,10 @@
   const toB64 = (bytes) => btoa(String.fromCharCode(...bytes));
   const fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
-  // 統一密碼格式：Unicode 正規化並移除所有空白，避免輸入法造成差異
+  // 統一密碼格式：Unicode 正規化、移除空白與連字號、英文轉小寫
+  // 讓護照英文名（如 HSIN-YU / Hsin Yu / hsinyu）怎麼打都一樣
   function normalize(password) {
-    return password.normalize('NFC').replace(/\s+/g, '');
+    return password.normalize('NFC').replace(/[\s-]+/g, '').toLowerCase();
   }
 
   async function deriveKey(password, salt, iterations, usage) {

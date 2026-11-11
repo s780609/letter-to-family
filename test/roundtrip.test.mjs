@@ -16,6 +16,11 @@ test('密碼前後與中間的空白會被忽略', async () => {
   assert.equal(await decrypt(payload, ' 0815 王小美美 '), TEXT);
 });
 
+test('英文大小寫與連字號不影響', async () => {
+  const payload = await encrypt(TEXT, '0815HSIN-YUYANG-YU');
+  assert.equal(await decrypt(payload, '0815 hsinyu YangYu'), TEXT);
+});
+
 test('錯誤密碼會失敗', async () => {
   const payload = await encrypt(TEXT, '0815王小美美');
   await assert.rejects(decrypt(payload, '0816王小美美'));

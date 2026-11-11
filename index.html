@@ -63,7 +63,7 @@
 <form class="card" id="lock" autocomplete="off">
   <h1>給家人的信</h1>
   <!-- 提示文字改這裡 -->
-  <p class="hint">提示：我的農曆生日（4 位數字，例如 0815）<br>＋ 兩個女兒的名字連在一起（姊姊在前，不含姓，共四字）</p>
+  <p class="hint">提示：我的農曆生日（4 位數字，例如 0815）<br>＋ 兩個女兒護照上的英文名字連在一起<br>（姊姊在前，不含姓；英文大小寫、空白、連字號都不影響）</p>
   <input id="pw" type="password" placeholder="請輸入密碼" aria-label="密碼" required autofocus>
   <button id="btn" type="submit">開啟</button>
   <p class="msg" id="msg" role="alert"></p>
@@ -78,10 +78,15 @@
   const btn = document.getElementById('btn');
   const msg = document.getElementById('msg');
 
-  // 極簡 Markdown：# 標題、- 清單、空行分段、網址自動連結
+  // 極簡 Markdown：# 標題、- 清單、空行分段、[文字](網址)、網址自動連結
   function render(md) {
     const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const inline = (s) => esc(s).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+    const a = (url, text) => `<a href="${url}" target="_blank" rel="noopener">${text}</a>`;
+    const autolink = (s) => esc(s).replace(/https?:\/\/[^\s<]+/g, (u) => a(u, u));
+    const inline = (s) => s.split(/(\[[^\]]+\]\(https?:\/\/[^)\s]+\))/).map((part) => {
+      const m = part.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/);
+      return m ? a(esc(m[2]), esc(m[1])) : autolink(part);
+    }).join('');
     let html = '', para = [], list = [];
     const flush = () => {
       if (para.length) html += '<p>' + para.map(inline).join('<br>') + '</p>';
