@@ -44,7 +44,14 @@
     display: none; width: 100%; max-width: 680px; padding: 56px 44px;
     background: var(--card); border: 1px solid var(--line); border-radius: 14px;
   }
-  #content { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.05rem; }
+  #content { overflow-wrap: anywhere; font-size: 1.05rem; }
+  #content h1 { text-align: center; font-size: 1.8rem; letter-spacing: .3em; margin: 0 0 32px; }
+  #content h2 { font-size: 1.35rem; margin: 48px 0 16px; padding-top: 32px; border-top: 1px solid var(--line); }
+  #content h3 { font-size: 1.1rem; margin: 28px 0 8px; color: var(--accent); }
+  #content h4 { font-size: 1rem; margin: 20px 0 6px; color: var(--muted); }
+  #content p { margin: 0 0 14px; }
+  #content ul { margin: 0 0 14px; padding-left: 1.4em; }
+  #content a { color: var(--accent); }
   @media (max-width: 480px) {
     .card { padding: 36px 20px; }
     #letter { padding: 36px 20px; }
@@ -71,13 +78,36 @@
   const btn = document.getElementById('btn');
   const msg = document.getElementById('msg');
 
+  // 極簡 Markdown：# 標題、- 清單、空行分段、網址自動連結
+  function render(md) {
+    const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const inline = (s) => esc(s).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+    let html = '', para = [], list = [];
+    const flush = () => {
+      if (para.length) html += '<p>' + para.map(inline).join('<br>') + '</p>';
+      if (list.length) html += '<ul>' + list.map((l) => '<li>' + inline(l) + '</li>').join('') + '</ul>';
+      para = []; list = [];
+    };
+    for (const raw of md.split(/\r?\n/)) {
+      const line = raw.trim();
+      const h = line.match(/^(#{1,4})\s+(.*)$/);
+      const li = line.match(/^-\s+(.*)$/);
+      if (!line) flush();
+      else if (h) { flush(); html += `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`; }
+      else if (li) { if (para.length) flush(); list.push(li[1]); }
+      else { if (list.length) flush(); para.push(line); }
+    }
+    flush();
+    return html;
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!window.LETTER) { msg.textContent = '尚未放入加密內容（data.js）。'; return; }
     btn.disabled = true; btn.textContent = '開啟中…'; msg.textContent = '';
     try {
       const text = await LetterCrypto.decrypt(window.LETTER, document.getElementById('pw').value);
-      document.getElementById('content').textContent = text;
+      document.getElementById('content').innerHTML = render(text);
       form.style.display = 'none';
       document.getElementById('letter').style.display = 'block';
       document.body.style.alignItems = 'flex-start';
