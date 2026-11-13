@@ -52,6 +52,10 @@
   #content p { margin: 0 0 14px; }
   #content ul { margin: 0 0 14px; padding-left: 1.4em; }
   #content a { color: var(--accent); }
+  #content .right { text-align: right; }
+  /* 簽名欄：### -> 姓名，下一行 -> 日期 */
+  #content h3.right { margin: 72px -.3em 4px 0; font-size: 1.3rem; letter-spacing: .3em; color: var(--text); }
+  #content h3.right + p.right { color: var(--muted); font-size: .95rem; letter-spacing: .08em; }
   @media (max-width: 480px) {
     .card { padding: 36px 20px; }
     #letter { padding: 36px 20px; }
@@ -78,7 +82,7 @@
   const btn = document.getElementById('btn');
   const msg = document.getElementById('msg');
 
-  // 極簡 Markdown：# 標題、- 清單、空行分段、[文字](網址)、網址自動連結
+  // 極簡 Markdown：# 標題、- 清單、空行分段、[文字](網址)、網址自動連結、行首 -> 靠右
   function render(md) {
     const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const a = (url, text) => `<a href="${url}" target="_blank" rel="noopener">${text}</a>`;
@@ -97,8 +101,14 @@
       const line = raw.trim();
       const h = line.match(/^(#{1,4})\s+(.*)$/);
       const li = line.match(/^-\s+(.*)$/);
+      const right = line.match(/^->\s+(.*)$/);
       if (!line) flush();
-      else if (h) { flush(); html += `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`; }
+      else if (h) {
+        flush();
+        const r = h[2].match(/^->\s+(.*)$/);
+        html += `<h${h[1].length}${r ? ' class="right"' : ''}>${inline(r ? r[1] : h[2])}</h${h[1].length}>`;
+      }
+      else if (right) { flush(); html += `<p class="right">${inline(right[1])}</p>`; }
       else if (li) { if (para.length) flush(); list.push(li[1]); }
       else { if (list.length) flush(); para.push(line); }
     }
